@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: declmig-web-server
+  namespace: declmig
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: declmig-web-server
+  template:
+    metadata:
+      labels:
+        app: declmig-web-server
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/declarative-migrations/declmig-web-server.rs:main
+          ports:
+            - containerPort: 8081
+
