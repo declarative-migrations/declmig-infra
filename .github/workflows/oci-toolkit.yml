@@ -1,0 +1,60 @@
+name: OCI toolkit contract
+
+on:
+  pull_request:
+    paths:
+      - "docker/*.Dockerfile"
+      - "docs/OCI_IMAGES.md"
+      - "infra/oci/**"
+      - "scripts/publish-multi-registry-oci.sh"
+      - ".github/workflows/oci-toolkit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docker/*.Dockerfile"
+      - "docs/OCI_IMAGES.md"
+      - "infra/oci/**"
+      - "scripts/publish-multi-registry-oci.sh"
+      - ".github/workflows/oci-toolkit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.9.8
+      - name: Verify immutable publisher
+        run: |
+          bash -n scripts/publish-multi-registry-oci.sh
+          OCI_TOOLKIT_VERIFY_ONLY=true bash scripts/publish-multi-registry-oci.sh
+      - name: Validate provider-isolated registry adapter
+        run: |
+          terraform -chdir=infra/oci/terraform fmt -diff -check
+          terraform -chdir=infra/oci/terraform init -backend=false -input=false
+          terraform -chdir=infra/oci/terraform validate
+      - name: Parse provider-native Crossplane resources
+        run: |
+          ruby -e 'require "yaml"; doc = YAML.safe_load(File.read("infra/oci/crossplane/registries.yaml"), aliases: false); abort "expected a Kubernetes List" unless doc["kind"] == "List"; abort "expected four managed resources" unless doc.fetch("items").length == 4; abort "destructive deletion policy" unless doc.fetch("items").all? { |item| item.dig("spec", "deletionPolicy") == "Orphan" }'
+      - name: Check image, migration, and repository boundaries
+        run: |
+          grep -F "FROM --platform=\$TARGETPLATFORM" docker/service-rust.Dockerfile
+          grep -F "FROM --platform=\$TARGETPLATFORM" docker/lambda-rust.Dockerfile
+          grep -F "FROM --platform=\$TARGETPLATFORM" docker/lambda-node.Dockerfile
+          grep -F 'public.ecr.aws/lambda/provided:al2023' docker/lambda-rust.Dockerfile
+          grep -F 'public.ecr.aws/lambda/nodejs:22' docker/lambda-node.Dockerfile
+          grep -F 'USER 10001:10001' docker/service-rust.Dockerfile
+          grep -F 'TypeSpec and JSON Schema Draft 2020-12 remain independent top-level' docs/OCI_IMAGES.md
+          test ! -d oci-registry
+          test ! -f crossplane/oci-registries.example.yaml
+          ! grep -RInE '^(<<<<<<< .+|=======$|>>>>>>> .+)$' --exclude-dir=.git --exclude-dir=.terraform .
