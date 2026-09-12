@@ -1,0 +1,20 @@
+{
+  "contractVersion": 1,
+  "status": "blocked_pending_owned_domain",
+  "issue": "https://github.com/declarative-migrations/declmig-infra/issues/1",
+  "dns": {
+    "type": "CNAME",
+    "name": "m",
+    "content": "replace-with-mobile-provider-host.example",
+    "proxied": true,
+    "ttl": 1
+  },
+  "tls": {
+    "alwaysUseHttps": true,
+    "edgeToOriginMode": "full_strict",
+    "minimumVersion": "1.2",
+    "universalSsl": true
+  },
+  "workerRoute": "m.<owned-domain>/*",
+  "activationRequired": true
+}

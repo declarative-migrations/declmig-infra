@@ -2,3 +2,16 @@ name = "declmig-edge"
 main = "worker.js"
 compatibility_date = "2026-08-01"
 
+# These public identifiers stay blank until an owned domain and signed runner
+# identities are reviewed. The Worker rejects `.invalid`/example/test hosts and
+# returns 503 for association documents whose identities are incomplete.
+[vars]
+DECLMIG_MOBILE_WEB_HOST = ""
+DECLMIG_MOBILE_WEB_ORIGIN = ""
+DECLMIG_STATIC_TTL_SECONDS = "300"
+DECLMIG_ANDROID_PACKAGE_ID = "com.declarativemigrations.declmig_flutter"
+DECLMIG_ANDROID_SHA256_CERT_FINGERPRINT = ""
+DECLMIG_APPLE_APP_ID = ""
+
+# Add the exact `m.<owned-domain>/*` route only after issue #1's domain,
+# provider-origin, signing, Supabase allowlist, and device gates are complete.

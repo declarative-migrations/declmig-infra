@@ -1,0 +1,9 @@
+{
+  "name": "declmig-cloudflare-edge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check worker.js",
+    "test": "node --test worker.test.mjs"
+  }
+}
