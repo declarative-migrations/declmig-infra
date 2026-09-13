@@ -24,13 +24,40 @@ jobs:
         uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
         with:
           toolchain: 1.95.0
-      - name: Install pinned ores-cli
-        run: cargo install --git https://github.com/ORESoftware/ores-cli --rev dacbe8e5dc1eb4b5492031ce5a45b9b1a8c5251b --locked --bin oresc
+      - name: Install pinned Zed
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/zed-v0.3.0.tar.gz"
+          root="$RUNNER_TEMP/zed-v0.3.0"
+          curl -fsSL --retry 3 --retry-all-errors \
+            -o "$archive" \
+            https://github.com/zed-pkg/zed-cli/releases/download/v0.3.0/zed-x86_64-unknown-linux-gnu.tar.gz
+          echo "f87576bc289e43ed647902527e7be70566445d2f1fd11249f067ab35547d4b8a  $archive" | sha256sum -c -
+          mkdir -p "$root"
+          tar -xzf "$archive" -C "$root"
+          zed_bin="$(find "$root" -type f -name zed -perm -u+x -print -quit)"
+          test -n "$zed_bin"
+          echo "ZED_BIN=$zed_bin" >> "$GITHUB_ENV"
+          "$zed_bin" --version
+      - name: Install and smoke-test ores-cli through Zed
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer="$RUNNER_TEMP/oresc-zed-consumer"
+          mkdir -p "$consumer"
+          cd "$consumer"
+          "$ZED_BIN" install oresoftware/ores-cli@=0.1.0 --do-not-write-new-manifest --allow-build --adapter none
+          "$ZED_BIN" run oresc -- --no-json doctor
+          "$ZED_BIN" run ores-cli -- --no-json doctor
+          echo "ORESC_ZED_CONSUMER=$consumer" >> "$GITHUB_ENV"
       - name: Validate six real provider roots
+        shell: bash
         run: |
           set -euo pipefail
           for root in neon supabase cloudflare aws gcp tf; do test -d "$root"; test ! -L "$root"; test -f "$root/.ores-provider-root.json"; done
-          oresc --no-json audit repo --path . --profile baseline --required-paths 'neon,supabase,cloudflare,aws,gcp,tf'
+          cd "$ORESC_ZED_CONSUMER"
+          "$ZED_BIN" run oresc -- --no-json audit repo --path "$GITHUB_WORKSPACE" --profile baseline --required-paths 'neon,supabase,cloudflare,aws,gcp,tf'
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: 22.16.0}
       - name: Re-admit peer authorities
