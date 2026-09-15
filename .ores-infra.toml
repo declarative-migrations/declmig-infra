@@ -1,0 +1,8 @@
+schema_version = 1
+layout = "modules"
+modules_root = "modules"
+environments_root = "environments"
+
+# Shared OCI child modules are sourced from zed-infra at exact commit refs.
+# Local modules/ is reserved for declarative-migrations-specific reusable code.
+remote_modules_require_commit_ref = true
