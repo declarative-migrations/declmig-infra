@@ -232,6 +232,9 @@ function normalizeHost(value) {
 }
 
 function positiveInteger(value, fallback) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+  // Reject partially parsed, negative and unreasonable cache windows.
+  const raw = String(value ?? "");
+  if (!/^[1-9][0-9]*$/.test(raw)) return fallback;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed <= 86_400 ? parsed : fallback;
 }
