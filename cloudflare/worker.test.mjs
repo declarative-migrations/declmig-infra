@@ -190,3 +190,17 @@ test("association endpoints are host-scoped and fail closed", () => {
     null,
   );
 });
+
+test("static asset TTL is strictly parsed and capped at one day", () => {
+  for (const invalid of ["1e6", "300garbage", "-5", "0", "86401", "999999999999999999"]) {
+    assert.equal(cacheControlForPath("/assets/logo.svg", {
+      ...env, DECLMIG_STATIC_TTL_SECONDS: invalid,
+    }), "public, max-age=300", invalid);
+  }
+  assert.equal(cacheControlForPath("/icons/logo.svg", {
+    ...env, DECLMIG_STATIC_TTL_SECONDS: "86400",
+  }), "public, max-age=86400");
+  assert.equal(cacheControlForPath("/auth/callback", {
+    ...env, DECLMIG_STATIC_TTL_SECONDS: "86400",
+  }), "no-store");
+});
